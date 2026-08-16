@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# documentation ignore
+*.aux
+*.bbl
+*.blg
+*.out
+*.pdf
+*.synctex(busy)
+*.synctex
+*.synctex.gz
+*.toc
+

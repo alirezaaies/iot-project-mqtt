@@ -1,0 +1,180 @@
+
+\documentclass[12pt,a4paper]{report}
+
+% =========================================================
+% تنظیمات اصلی
+% =========================================================
+
+\input{config}
+
+% =========================================================
+% شروع سند
+% =========================================================
+
+\begin{document}
+	
+	% ---------------------------------------------------------
+	% صفحات ابتدایی
+	% ---------------------------------------------------------
+	
+	\pagenumbering{roman}
+	
+	\begin{titlepage}
+		
+		\begin{center}
+			
+			\vspace*{2cm}
+			
+			{\Large
+				عنوان پروژه
+				\par}
+			
+			\vspace{1.5cm}
+			
+			{\LARGE
+				پیاده‌سازی سیستم دیتالاگر، مانیتورینگ و کنترل مبتنی بر MQTT
+				\par}
+			
+			\vspace{2cm}
+			
+			{\large
+				نام تهیه‌کننده
+				\par}
+			
+			\vspace{0.5cm}
+			
+			{\large
+				تاریخ
+				\par}
+			
+			\vfill
+			
+		\end{center}
+		
+	\end{titlepage}
+	
+	\tableofcontents
+	
+	\newpage
+	
+	% ---------------------------------------------------------
+	% شروع محتوای اصلی
+	% ---------------------------------------------------------
+	
+	\pagenumbering{arabic}
+	
+	\chapter{تعریف پروژه}
+	
+	\input{chapters/01-project-definition}
+	
+	\chapter{محیط توسعه}
+	
+	\input{chapters/02-environment}
+	
+	\chapter{Python مورد نیاز پروژه}
+	
+	\input{chapters/03-python}
+	
+	\chapter{Git}
+	
+	\input{chapters/04-git}
+	
+	\chapter{SQLite و SQL}
+	
+	\input{chapters/05-sqlite}
+	
+	\chapter{MQTT}
+	
+	\input{chapters/06-mqtt}
+	
+	\chapter{Python و MQTT}
+	
+	\input{chapters/07-python-mqtt}
+	
+	\chapter{ESP8266}
+	
+	\input{chapters/08-esp8266}
+	
+	\chapter{ESP8266 و Wi-Fi}
+	
+	\input{chapters/09-esp8266-wifi}
+	
+	\chapter{ESP8266 و MQTT}
+	
+	\input{chapters/10-esp8266-mqtt}
+	
+	\chapter{سنسورها و ماژول‌های سخت‌افزاری}
+	
+	\input{chapters/11-sensors}
+	
+	\chapter{مدل داده}
+	
+	\input{chapters/12-data-model}
+	
+	\chapter{مدیریت دستگاه‌ها}
+	
+	\input{chapters/13-device-management}
+	
+	\chapter{Backend}
+	
+	\input{chapters/14-backend}
+	
+	\chapter{Web Application}
+	
+	\input{chapters/15-webapp}
+	
+	\chapter{کنترل تجهیزات}
+	
+	\input{chapters/16-control}
+	
+	\chapter{امنیت}
+	
+	\input{chapters/17-security}
+	
+	\chapter{قابلیت اطمینان و مدیریت خطا}
+	
+	\input{chapters/18-reliability}
+	
+	\chapter{تست}
+	
+	\input{chapters/19-testing}
+	
+	\chapter{استقرار}
+	
+	\input{chapters/20-deployment}
+	
+	\chapter{نتیجه‌گیری و توسعه آینده}
+	
+	\input{chapters/21-conclusion}
+	
+	% ---------------------------------------------------------
+	% پیوست‌ها
+	% ---------------------------------------------------------
+	
+	\appendix
+	
+	\chapter{راهنمای نصب}
+	
+	\input{appendices/a-installation}
+	
+	\chapter{مرجع MQTT}
+	
+	\input{appendices/b-mqtt-reference}
+	
+	\chapter{مرجع SQL}
+	
+	\input{appendices/c-sql-reference}
+	
+	\chapter{عیب‌یابی}
+	
+	\input{appendices/d-troubleshooting}
+	
+	% ---------------------------------------------------------
+	% منابع
+	% ---------------------------------------------------------
+	
+	\bibliographystyle{plain}
+	\bibliography{references/references}
+	
+\end{document}
+

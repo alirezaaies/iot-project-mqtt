@@ -1,0 +1,138 @@
+# فایل `config.tex`
+
+```latex
+% =========================================================
+% زبان و فونت
+% =========================================================
+
+\usepackage{xepersian}
+
+\settextfont{BNazanin}
+\setlatintextfont{Latin Modern Roman}
+
+% اگر فونت Vazirmatn روی سیستم موجود نبود،
+% می‌توان فونت فارسی دیگری قرار داد.
+
+
+% =========================================================
+% صفحه
+% =========================================================
+
+\usepackage[
+    top=3cm,
+    bottom=3cm,
+    right=3cm,
+    left=3cm
+]{geometry}
+
+
+% =========================================================
+% تصاویر
+% =========================================================
+
+\usepackage{graphicx}
+\usepackage{float}
+
+
+% =========================================================
+% جدول
+% =========================================================
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+
+
+% =========================================================
+% ریاضی
+% =========================================================
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+
+% =========================================================
+% کدها
+% =========================================================
+
+\usepackage{listings}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    keepspaces=true,
+    showstringspaces=false
+}
+
+
+% =========================================================
+% رنگ
+% =========================================================
+
+\usepackage{xcolor}
+
+
+% =========================================================
+% لینک‌ها
+% =========================================================
+
+\usepackage[
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+]{hyperref}
+
+
+% =========================================================
+% عنوان‌ها
+% =========================================================
+
+\usepackage{titlesec}
+
+\titleformat{\chapter}
+  {\Huge\bfseries}
+  {\thechapter}
+  {1em}
+  {}
+
+\titleformat{\section}
+  {\Large\bfseries}
+  {\thesection}
+  {1em}
+  {}
+
+\titleformat{\subsection}
+  {\large\bfseries}
+  {\thesubsection}
+  {1em}
+  {}
+
+
+% =========================================================
+% فاصله خطوط
+% =========================================================
+
+\usepackage{setspace}
+
+\onehalfspacing
+
+
+% =========================================================
+% هدر و فوتر
+% =========================================================
+
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+
+\fancyhf{}
+
+\fancyhead[R]{گزارش پروژه دیتالاگر و مانیتورینگ}
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+```
