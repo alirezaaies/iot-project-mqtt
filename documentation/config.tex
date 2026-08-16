@@ -1,19 +1,4 @@
-% =========================================================
-% زبان و فونت
-% =========================================================
-
-\usepackage{xepersian}
-
-\settextfont[Scale=1.0]{Tahoma}
-\setlatintextfont[Scale=1.0]{Arial}
-
-% اگر فونت‌های فارسی دیگری روی سیستم نصب است، می‌توان آن‌ها را به جای Tahoma استفاده کرد.
-
-
-% =========================================================
-% صفحه
-% =========================================================
-
+% Packages are loaded before xepersian; xepersian must remain last.
 \usepackage[
     top=3cm,
     bottom=3cm,
@@ -21,39 +6,40 @@
     left=3cm
 ]{geometry}
 
-
-% =========================================================
-% تصاویر
-% =========================================================
-
 \usepackage{graphicx}
+\graphicspath{{../figures/}}
 \usepackage{float}
-
-
-% =========================================================
-% جدول
-% =========================================================
-
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{array}
-
-
-% =========================================================
-% ریاضی
-% =========================================================
-
 \usepackage{amsmath}
 \usepackage{amssymb}
-
-
-% =========================================================
-% کدها
-% =========================================================
-
+\usepackage{xcolor}
 \usepackage{listings}
 \usepackage[most]{tcolorbox}
 \usepackage{enumitem}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage[
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+]{hyperref}
+\usepackage{xepersian}
+
+% Project metadata: update these values as needed.
+\newcommand{\ProjectAuthor}{نام تهیه‌کننده}
+\newcommand{\ReportVersion}{نسخه صفر ـ طراحی ساختار}
+
+% Portable defaults available in common Linux distributions.
+% Replace Vazirmatn with another installed Persian font if desired.
+\IfFontExistsTF{IRANSansX}
+  {\settextfont{IRANSansX}}
+  {\settextfont{BNazanin}}
+\setlatintextfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}
 
 \lstset{
     basicstyle=\ttfamily\small,
@@ -64,79 +50,23 @@
     showstringspaces=false
 }
 
-
-% =========================================================
-% رنگ
-% =========================================================
-
-\usepackage{xcolor}
-
-
-% =========================================================
-% لینک‌ها
-% =========================================================
-
-\usepackage[
-    colorlinks=true,
-    linkcolor=blue,
-    citecolor=blue,
-    urlcolor=blue
-]{hyperref}
-
-
-% =========================================================
-% عنوان‌ها
-% =========================================================
-
-\usepackage{titlesec}
-
-\titleformat{\chapter}
-  {\Huge\bfseries}
-  {\thechapter}
-  {1em}
-  {}
-
-\titleformat{\section}
-  {\Large\bfseries}
-  {\thesection}
-  {1em}
-  {}
-
-\titleformat{\subsection}
-  {\large\bfseries}
-  {\thesubsection}
-  {1em}
-  {}
-
-
-% =========================================================
-% فاصله خطوط
-% =========================================================
-
-\usepackage{setspace}
+\titleformat{\chapter}{\Huge\bfseries}{\thechapter}{1em}{}
+\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
 
 \onehalfspacing
-
-
-% =========================================================
-% هدر و فوتر
-% =========================================================
-
-% =========================================================
-% هدر و فوتر
-% =========================================================
-
-\usepackage{fancyhdr}
-
+\setlength{\headheight}{15pt}
 \pagestyle{fancy}
-
-\setlength{\headheight}{14.5pt}
-
 \fancyhf{}
-
-\fancyhead[R]{گزارش پروژه دیتالاگر و مانیتورینگ}
+\fancyhead[R]{گزارش سامانه مانیتورینگ و کنترل
+\lr{IoT}
+}
 \fancyfoot[C]{\thepage}
-
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0pt}
 
+\newtcolorbox{phasebox}{
+    colback=blue!4,
+    colframe=blue!45!black,
+    title=خلاصه مرحله
+}
