@@ -1,17 +1,13 @@
-# فایل `config.tex`
-
-```latex
 % =========================================================
 % زبان و فونت
 % =========================================================
 
 \usepackage{xepersian}
 
-\settextfont{BNazanin}
-\setlatintextfont{Latin Modern Roman}
+\settextfont[Scale=1.0]{Tahoma}
+\setlatintextfont[Scale=1.0]{Arial}
 
-% اگر فونت Vazirmatn روی سیستم موجود نبود،
-% می‌توان فونت فارسی دیگری قرار داد.
+% اگر فونت‌های فارسی دیگری روی سیستم نصب است، می‌توان آن‌ها را به جای Tahoma استفاده کرد.
 
 
 % =========================================================
@@ -56,6 +52,8 @@
 % =========================================================
 
 \usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
 
 \lstset{
     basicstyle=\ttfamily\small,
@@ -124,9 +122,15 @@
 % هدر و فوتر
 % =========================================================
 
+% =========================================================
+% هدر و فوتر
+% =========================================================
+
 \usepackage{fancyhdr}
 
 \pagestyle{fancy}
+
+\setlength{\headheight}{14.5pt}
 
 \fancyhf{}
 
@@ -135,4 +139,4 @@
 
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0pt}
-```
+

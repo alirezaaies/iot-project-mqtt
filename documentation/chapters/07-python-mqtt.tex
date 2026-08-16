@@ -1,0 +1,22 @@
+\section{اتصال Python به MQTT}
+
+Python می‌تواند به‌عنوان مشتری MQTT عمل کند و پیام‌ها را دریافت یا منتشر کند. این قابلیت برای ساخت سرویس‌های میانی، پایش داده و پردازش اعلان‌ها بسیار مهم است.
+
+\section{کتابخانه client}
+
+کتابخانه \texttt{paho-mqtt} برای اتصال به broker و انجام عملیات publish و subscribe استفاده می‌شود. این اتصال معمولاً با یک callback و loop مناسب پیاده‌سازی می‌شود.
+
+\section{نمونه کد}
+
+\begin{lstlisting}[language=Python]
+import paho.mqtt.client as mqtt
+
+client = mqtt.Client()
+client.connect("localhost", 1883, 60)
+client.subscribe("iot/data")
+client.loop_start()
+\end{lstlisting}
+
+\section{پیاده‌سازی عملی}
+
+در پروژه، Python می‌تواند پیام‌های ورودی را به پایگاه داده منتقل کند، رخدادها را ثبت کند یا دستورهای کنترل را به دستگاه‌ها ارسال نماید.
