@@ -6,9 +6,13 @@ The first version will use ESP8266, Arduino code, MQTT, Python, SQLite, and Flas
 
 ## Current status
 
-Step 1 is implemented: the local MQTT broker is tested independently, then the
-ESP8266 publishes status and test telemetry. Database, Python, control, and web
-modules remain intentionally unimplemented.
+The broker, device telemetry, local storage, and command-control steps are implemented. The local MQTT broker is tested independently, then the
+ESP8266 publishes status and normalized temperature and humidity telemetry.
+The same format supports larger sensor sets by splitting them into numbered
+MQTT batches. A Python collector now validates those batches and stores
+normalized readings in local SQLite tables. A separate Python command sender
+can send one or several actions to the ESP8266 and waits for the matching
+device response. The web module remains intentionally unimplemented.
 
 ## Project structure
 
@@ -16,9 +20,8 @@ modules remain intentionally unimplemented.
 .
 ├── code/
 │   ├── arduino/       # ESP8266 sketch and hardware-related files
-│   ├── backend/       # Main Python logic and MQTT communication
+│   ├── collector/     # MQTT receiving, validation, and SQLite storage
 │   ├── contracts/     # MQTT topics and JSON message formats
-│   ├── database/      # Database schema, models, and database access code
 │   ├── webapp/        # Flask application, pages, templates, and static files
 │   └── tests/         # Tests that connect multiple parts of the project
 ├── documentation/     # Persian LaTeX implementation report
@@ -33,9 +36,10 @@ modules remain intentionally unimplemented.
 | Work | Directory |
 |---|---|
 | Arduino or ESP8266 code | `code/arduino/` |
-| Receiving or sending MQTT messages in Python | `code/backend/` |
-| Main program rules and data validation | `code/backend/` |
-| SQLite tables and database access functions | `code/database/` |
+| Receiving MQTT messages in Python | `code/collector/mqtt_collector.py` |
+| Sending device commands in Python | `code/collector/command_sender.py` |
+| Message validation | `code/collector/mqtt_collector.py` |
+| SQLite tables and database operations | `code/collector/database.py` |
 | Flask routes, HTML templates, CSS, and JavaScript | `code/webapp/` |
 | MQTT topic names and JSON examples | `code/contracts/` |
 | Local database and logs created while running | `runtime/` |
@@ -44,7 +48,7 @@ modules remain intentionally unimplemented.
 ## Keeping future changes easy
 
 - To replace Flask with Django, replace the implementation inside `code/webapp/`. The Arduino, MQTT, and database folders should not need to change.
-- To replace SQLite with PostgreSQL, replace the implementation inside `code/database/`. Other code should use the database functions defined there instead of writing SQL directly.
+- To replace SQLite with PostgreSQL, replace `code/collector/database.py`. The MQTT collector already calls its methods instead of writing SQL directly.
 - To add another board, create another clearly named folder next to `code/arduino/` when it is actually needed.
 - Shared message formats belong in `code/contracts/`, so Arduino and Python use the same definitions.
 
@@ -54,9 +58,9 @@ This is a simple separation rule, not a requirement to build every possible repl
 
 1. Test the local MQTT broker without the ESP8266.
 2. Publish status and test telemetry from the ESP8266.
-3. Store received data in a local SQLite database.
+3. Store received data in a local SQLite database. (Implemented)
 4. Read and display stored data with a small Python module.
-5. Add one safe control command, such as changing an LED state.
+5. Add safe single-action and multi-action control commands. (Implemented)
 6. Add a simple web application.
 7. Add integration tests and local deployment instructions.
 

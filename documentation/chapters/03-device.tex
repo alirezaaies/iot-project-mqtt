@@ -5,17 +5,21 @@
 \lr{USB}
 نوشته شده است. پروژهٔ
 \lr{firmware}
-فقط چهار فایل لازم دارد:
+فقط هشت فایل لازم دارد:
 
 \begin{LTR}
 \begin{lstlisting}
 code/arduino/mqtt/
 |-- platformio.ini
 |-- include/
+|   |-- actuators.h
+|   |-- sensors.h
 |   |-- secrets.example.h
 |   `-- secrets.h          # local and ignored by Git
 `-- src/
-    `-- main.cpp
+    |-- actuators.cpp
+    |-- main.cpp
+    `-- sensors.cpp
 \end{lstlisting}
 \end{LTR}
 
@@ -63,7 +67,7 @@ constexpr char MQTT_HOST[] = "(*@\lr{192.168.1.15}@*)";
 \section{رفتار
 \lr{firmware}
 }
-کد فعلی چهار مسئولیت دارد:
+کد فعلی پنج مسئولیت دارد:
 
 \begin{enumerate}
   \item اتصال به شبکه و نمایش نشانی برد؛
@@ -71,10 +75,21 @@ constexpr char MQTT_HOST[] = "(*@\lr{192.168.1.15}@*)";
   \item انتشار وضعیت
   \lr{online/offline}
   ؛
-  \item انتشار یک مقدار آزمایشی هر پنج ثانیه.
+  \item خواندن دما و رطوبت آزمایشی از ماژول سنسورها؛
+  \item ساخت و انتشار بسته‌های داده هر پنج ثانیه؛
+  \item دریافت فرمان و تحویل
+  \lr{action}ها
+  به ماژول
+  \lr{actuator}.
 \end{enumerate}
 
-حسگر و فرمان کنترل در این نسخه وجود ندارند. این جداسازی عمدی است تا ارتباط پایه به‌تنهایی آزمایش شود.
+مقدارهای دما و رطوبت فعلاً شبیه‌سازی می‌شوند. فایل
+\lr{sensors.cpp}
+تنها محل وابسته به سخت‌افزار است و
+\lr{actuators.cpp}
+تنها محل تنظیم خروجی‌ها و قواعد ایمنی است.
+\lr{main.cpp}
+بسته‌بندی و ارتباط را مدیریت می‌کند.
 
 \section{موضوع‌ها و پیام‌ها}
 شناسهٔ دستگاه
@@ -85,6 +100,8 @@ constexpr char MQTT_HOST[] = "(*@\lr{192.168.1.15}@*)";
 \begin{lstlisting}
 iot/devices/esp8266-01/status
 iot/devices/esp8266-01/telemetry
+iot/devices/esp8266-01/control
+iot/devices/esp8266-01/response
 \end{lstlisting}
 \end{LTR}
 
@@ -93,21 +110,79 @@ iot/devices/esp8266-01/telemetry
 \begin{LTR}
 \begin{lstlisting}
 {
+  "schema_version": 1,
   "device_id": "esp8266-01",
-  "uptime_ms": 15342,
-  "sample_value": 418,
-  "firmware": "0.1.0"
+  "message_id": 42,
+  "sampled_at_ms": 15342,
+  "batch_index": 1,
+  "batch_count": 1,
+  "readings": [
+    {"sensor_id":"temperature","value":(*@\lr{24.6}@*),"unit":"celsius"},
+    {"sensor_id":"humidity","value":(*@\lr{58.2}@*),"unit":"percent"}
+  ]
 }
 \end{lstlisting}
 \end{LTR}
 
-مقدار
-\lr{sample\_value}
-ساختگی است و اندازه‌گیری محیط محسوب نمی‌شود. پیام وضعیت به‌صورت نگه‌داری‌شده منتشر می‌شود و در قطع ناگهانی، سازوکار آخرین وصیت
+مقدارهای کنونی ساختگی‌اند و اندازه‌گیری محیط محسوب نمی‌شوند. پیام وضعیت به‌صورت نگه‌داری‌شده منتشر می‌شود و در قطع ناگهانی، سازوکار آخرین وصیت
 \lr{MQTT}
 وضعیت را به
 \lr{offline}
 تغییر می‌دهد.
+
+\subsection{معنای فیلدهای بسته}
+\begin{itemize}
+  \item
+  \lr{schema\_version}
+  نسخهٔ ساختار پیام است؛
+  \item
+  \lr{message\_id}
+  شمارهٔ یک نوبت نمونه‌برداری است؛
+  \item
+  \lr{sampled\_at\_ms}
+  زمان نمونه‌برداری از لحظهٔ روشن‌شدن برد است؛
+  \item
+  \lr{batch\_index}
+  شمارهٔ بسته و
+  \lr{batch\_count}
+  تعداد کل بسته‌های همان نمونه‌اند؛
+  \item
+  \lr{readings}
+  فهرست سنسورهاست و هر عضو شناسهٔ پایدار، مقدار عددی و واحد دارد.
+\end{itemize}
+
+\section{افزودن و افزایش تعداد سنسورها}
+برای افزودن سنسور، فقط تابع
+\lr{readSensors}
+در فایل
+\lr{src/sensors.cpp}
+را تغییر دهید. نمونه:
+
+\begin{LTR}
+\begin{lstlisting}[language=C++]
+namespace {
+constexpr size_t CURRENT_SENSOR_COUNT = 3;
+}
+
+readings[0] = {"temperature", (*@\lr{24.6F}@*), "celsius"};
+readings[1] = {"humidity", (*@\lr{58.2F}@*), "percent"};
+readings[2] = {"room_2_temperature", (*@\lr{22.8F}@*), "celsius"};
+\end{lstlisting}
+\end{LTR}
+
+شناسهٔ سنسور باید کوتاه، یکتا و پس از شروع ذخیرهٔ داده ثابت باشد. واحد را داخل شناسه قرار ندهید؛ واحد فیلد جداگانه دارد. همهٔ داده‌های این نسخه عددی هستند. نوع‌های متنی یا منطقی فقط زمانی به قرارداد اضافه می‌شوند که یک نیاز واقعی وجود داشته باشد.
+
+آرایهٔ فعلی تا
+\lr{128}
+سنسور را نگه می‌دارد. هر بسته حداکثر شش سنسور دارد؛ بنابراین دو سنسور در یک بسته، بیست سنسور در چهار بسته و صد سنسور در هفده بسته ارسال می‌شوند. همهٔ بسته‌های یک نوبت
+\lr{message\_id}
+یکسان دارند و دریافت‌کننده آن‌ها را با شمارهٔ بسته مرتب می‌کند. این روش از ساخت یک پیام بسیار بزرگ و مصرف ناگهانی حافظه جلوگیری می‌کند.
+
+برای بیش از
+\lr{128}
+سنسور ابتدا مقدار
+\lr{MAX\_SENSOR\_COUNT}
+را افزایش دهید و مصرف حافظه را پس از ساخت بررسی کنید. اندازهٔ هر بسته را بدون اندازه‌گیری افزایش ندهید.
 
 \section{ساخت
 \lr{firmware}
@@ -131,11 +206,11 @@ pio run
 \end{LTR}
 
 در آزمایش انجام‌شده برای این نسخه، ساخت موفق بود و حدود
-\lr{35.3\%}
+\lr{37.5\%}
 حافظهٔ
 \lr{RAM}
 و
-\lr{27.2\%}
+\lr{27.3\%}
 حافظهٔ برنامه مصرف شد.
 
 \section{ارسال روی برد و مشاهدهٔ خروجی}
@@ -164,7 +239,7 @@ pio device monitor
 \begin{lstlisting}
 Wi-Fi connected. Device IP: (*@\lr{192.168.1.x}@*)
 MQTT connected.
-Telemetry published: {"device_id":"esp8266-01",...}
+Telemetry batch published: {"schema_version":1,...}
 \end{lstlisting}
 \end{LTR}
 

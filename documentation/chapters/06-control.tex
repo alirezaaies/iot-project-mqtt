@@ -1,0 +1,383 @@
+\section{هدف و مسیر فرمان}
+هدف این مرحله، ارسال یک یا چند
+\lr{action}
+از پایتون، اجرای کنترل‌شده در برد و دریافت پاسخ مرتبط است:
+
+\begin{LTR}
+\begin{lstlisting}
+command_sender.py -> MQTT control -> ESP8266 -> actuators.cpp
+command_sender.py <- MQTT response <- ESP8266 <--- result
+\end{lstlisting}
+\end{LTR}
+
+فرستنده پیش از
+\lr{publish}
+روی موضوع پاسخ
+\lr{subscribe}
+می‌کند. در نتیجه پاسخ سریع برد از دست نمی‌رود. هر فرمان یک
+\lr{command\_id}
+یکتا دارد و فرستنده فقط پاسخی را می‌پذیرد که همین شناسه را داشته باشد.
+
+\section{موضوع‌های کنترل}
+برای دستگاه
+\lr{esp8266-01}
+دو موضوع استفاده می‌شود:
+
+\begin{LTR}
+\begin{lstlisting}
+iot/devices/esp8266-01/control
+iot/devices/esp8266-01/response
+\end{lstlisting}
+\end{LTR}
+
+برنامهٔ پایتون فرمان را روی
+\lr{control}
+منتشر می‌کند. برد پس از پردازش، نتیجه را روی
+\lr{response}
+می‌فرستد. شناسهٔ دستگاه بخشی از موضوع است؛ بنابراین فرمان یک برد به برد دیگر ارسال نمی‌شود.
+
+\section{ساختار فرمان تک‌عملی}
+برای روشن‌کردن چراغ داخلی:
+
+\begin{LTR}
+\begin{lstlisting}
+{
+  "schema_version": 1,
+  "command_id": "cmd-001",
+  "actions": [
+    {"target": "led", "value": true}
+  ]
+}
+\end{lstlisting}
+\end{LTR}
+
+\lr{actions}
+همیشه یک فهرست است؛ حتی وقتی فقط یک عمل وجود دارد. این تصمیم باعث می‌شود برای چند عمل به قرارداد دیگری نیاز نباشد.
+
+\section{ساختار فرمان چندعملی}
+نمونهٔ زیر هم‌زمان چراغ را روشن و دو
+\lr{setpoint}
+را تغییر می‌دهد:
+
+\begin{LTR}
+\begin{lstlisting}
+{
+  "schema_version": 1,
+  "command_id": "cmd-002",
+  "actions": [
+    {"target": "led", "value": true},
+    {"target": "temperature_setpoint", "value": (*@\lr{24.5}@*)},
+    {"target": "humidity_setpoint", "value": (*@\lr{60.0}@*)}
+  ]
+}
+\end{lstlisting}
+\end{LTR}
+
+حداکثر هشت
+\lr{action}
+در یک فرمان پذیرفته می‌شود. برای تعداد بیشتر، چند فرمان جدا ارسال کنید. این محدودیت اندازهٔ پیام و حافظهٔ برد را قابل پیش‌بینی نگه می‌دارد.
+
+\section{هدف‌های کنترلی فعلی}
+\begin{itemize}
+  \item
+  \lr{led}
+  مقدار منطقی می‌گیرد و چراغ داخلی را کنترل می‌کند؛
+  \item
+  \lr{heater}
+  ،
+  \lr{cooler}
+  و
+  \lr{relay}
+  مقدار منطقی می‌گیرند، اما خروجی آن‌ها در تنظیم اولیه غیرفعال است؛
+  \item
+  \lr{temperature\_setpoint}
+  عددی بین
+  \lr{-40}
+  و
+  \lr{125}
+  می‌گیرد؛
+  \item
+  \lr{humidity\_setpoint}
+  عددی بین صفر و صد می‌گیرد.
+\end{itemize}
+
+مقدارهای
+\lr{setpoint}
+فعلاً در
+\lr{RAM}
+هستند و با راه‌اندازی دوبارهٔ برد به مقدار اولیه برمی‌گردند. ذخیرهٔ دائمی فقط زمانی اضافه می‌شود که رفتار بازیابی و فرسایش حافظه طراحی شده باشد.
+
+منطق کنترل خودکار آینده می‌تواند مقدارها را بدون وابستگی به
+\lr{MQTT}
+از خود ماژول بخواند:
+
+\begin{LTR}
+\begin{lstlisting}[language=C++]
+const float wantedTemperature = getTemperatureSetpoint();
+const float wantedHumidity = getHumiditySetpoint();
+\end{lstlisting}
+\end{LTR}
+
+\section{پاسخ برد}
+پاسخ یک فرمان موفق:
+
+\begin{LTR}
+\begin{lstlisting}
+{
+  "schema_version": 1,
+  "device_id": "esp8266-01",
+  "command_id": "cmd-002",
+  "success": true,
+  "results": [
+    {"target":"led","success":true,"message":"LED turned on"},
+    {"target":"temperature_setpoint","success":true,
+     "message":"temperature setpoint updated"},
+    {"target":"humidity_setpoint","success":true,
+     "message":"humidity setpoint updated"}
+  ]
+}
+\end{lstlisting}
+\end{LTR}
+
+فیلد اصلی
+\lr{success}
+فقط زمانی
+\lr{true}
+است که همهٔ
+\lr{action}ها
+موفق باشند.
+
+\subsection{نمونهٔ موفقیت جزئی}
+در تنظیم اولیه چراغ داخلی فعال ولی
+\lr{relay}
+غیرفعال است. اگر هر دو در یک فرمان روشن شوند، چراغ اجرا می‌شود و
+\lr{relay}
+رد می‌شود:
+
+\begin{LTR}
+\begin{lstlisting}
+{
+  "command_id": "cmd-003",
+  "success": false,
+  "results": [
+    {"target":"led","success":true,"message":"LED turned on"},
+    {"target":"relay","success":false,
+     "message":"relay output is disabled"}
+  ]
+}
+\end{lstlisting}
+\end{LTR}
+
+\lr{action}ها
+به‌ترتیب اجرا می‌شوند و نتیجهٔ مستقل دارند. بنابراین فرستنده باید همیشه آرایهٔ
+\lr{results}
+را بخواند و فقط به مقدار کلی اکتفا نکند.
+
+\section{اجرای فرستندهٔ پایتون}
+از پوشهٔ
+\lr{code/collector}
+و با محیط مجازی فعال اجرا کنید.
+
+روشن‌کردن چراغ داخلی:
+
+\begin{LTR}
+\begin{lstlisting}
+python command_sender.py esp8266-01 --set led=on
+\end{lstlisting}
+\end{LTR}
+
+خاموش‌کردن چراغ داخلی:
+
+\begin{LTR}
+\begin{lstlisting}
+python command_sender.py esp8266-01 --set led=off
+\end{lstlisting}
+\end{LTR}
+
+تغییر یک
+\lr{setpoint}:
+
+\begin{LTR}
+\begin{lstlisting}
+python command_sender.py esp8266-01 \
+  --set temperature_setpoint=(*@\lr{24.5}@*)
+\end{lstlisting}
+\end{LTR}
+
+ارسال چند
+\lr{action}
+در یک فرمان:
+
+\begin{LTR}
+\begin{lstlisting}
+python command_sender.py esp8266-01 \
+  --set led=on \
+  --set temperature_setpoint=(*@\lr{24.5}@*) \
+  --set humidity_setpoint=60
+\end{lstlisting}
+\end{LTR}
+
+برای
+\lr{Windows PowerShell}
+به‌جای
+\lr{backslash}
+از
+\lr{backtick}
+استفاده کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+python command_sender.py esp8266-01 `
+  --set led=on `
+  --set temperature_setpoint=(*@\lr{24.5}@*) `
+  --set humidity_setpoint=60
+\end{lstlisting}
+\end{LTR}
+
+مقادیر
+\lr{on/true}
+به
+\lr{true}
+و مقادیر
+\lr{off/false}
+به
+\lr{false}
+تبدیل می‌شوند. مقدارهای دیگر باید عدد باشند.
+
+\section{استفاده از فرستنده در کد پایتون دیگر}
+رابط برنامه‌نویسی مستقیم برای استفادهٔ آینده در وب یا
+\lr{automation}:
+
+\begin{LTR}
+\begin{lstlisting}[language=Python]
+from command_sender import CommandSender, build_command, parse_action
+
+actions = [
+    parse_action("led=on"),
+    parse_action("temperature_setpoint=(*@\lr{24.5}@*)"),
+]
+command = build_command(actions)
+response = CommandSender().send("esp8266-01", command)
+
+for result in response["results"]:
+    print(result["target"], result["success"], result["message"])
+\end{lstlisting}
+\end{LTR}
+
+وب‌اپلیکیشن آینده باید همین کلاس را صدا بزند و قرارداد جداگانه‌ای نسازد.
+
+\section{فعال‌سازی ایمن خروجی‌های خارجی}
+در فایل
+\lr{src/actuators.cpp}
+خروجی‌های
+\lr{heater}،
+\lr{cooler}
+و
+\lr{relay}
+عمداً
+\lr{false}
+هستند:
+
+\begin{LTR}
+\begin{lstlisting}[language=C++]
+constexpr bool ENABLE_HEATER_OUTPUT = false;
+constexpr uint8_t HEATER_PIN = D1;
+
+constexpr bool ENABLE_COOLER_OUTPUT = false;
+constexpr uint8_t COOLER_PIN = D2;
+
+constexpr bool ENABLE_RELAY_OUTPUT = false;
+constexpr uint8_t RELAY_PIN = D5;
+\end{lstlisting}
+\end{LTR}
+
+پیش از تغییر هر گزینه به
+\lr{true}
+این موارد را بررسی کنید:
+
+\begin{itemize}
+  \item پین با فرایند راه‌اندازی برد تداخل نداشته باشد؛
+  \item
+  \lr{GPIO}
+  بار قدرت را مستقیم تغذیه نکند و مدار راه‌انداز یا
+  \lr{relay}
+  مناسب وجود داشته باشد؛
+  \item ولتاژ، جریان، ایزولاسیون، فیوز و حالت قطع ارتباط بررسی شده باشد؛
+  \item سطح فعال
+  \lr{HIGH/LOW}
+  با ماژول واقعی تطبیق داشته باشد؛
+  \item خروجی هنگام شروع برنامه ابتدا خاموش بماند.
+\end{itemize}
+
+کد اجازه نمی‌دهد
+\lr{heater}
+وقتی
+\lr{cooler}
+روشن است فعال شود و برعکس. این قفل متقابل نرم‌افزاری جای حفاظت الکتریکی و ترموستات مستقل را نمی‌گیرد.
+
+\section{افزودن هدف کنترلی تازه}
+برای افزودن مثلاً
+\lr{pump}
+:
+
+\begin{enumerate}
+  \item پین، سطح فعال و گزینهٔ فعال‌سازی را در
+  \lr{actuators.cpp}
+  تعریف کنید؛
+  \item در
+  \lr{initializeActuators}
+  خروجی را در حالت خاموش آماده کنید؛
+  \item یک شاخهٔ تازه در
+  \lr{applyControlAction}
+  اضافه و نوع مقدار را بررسی کنید؛
+  \item یک آزمون برای تجزیهٔ فرمان پایتون و یک آزمون واقعی خروجی اضافه کنید؛
+  \item هدف کنترلی و محدودیت ایمنی آن را در همین فصل ثبت کنید.
+\end{enumerate}
+
+منطق هدف تازه نباید داخل تابع بازگشتی مربوط به
+\lr{MQTT}
+قرار گیرد؛ تابع بازگشتی فقط
+\lr{JSON}
+را می‌خواند و ماژول
+\lr{actuator}
+را صدا می‌زند.
+
+\section{تست و خروجی مورد انتظار}
+تست‌های پایتون را اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+python -m unittest -v
+\end{lstlisting}
+\end{LTR}
+
+اکنون در مجموع نه آزمون اجرا می‌شود. ساخت نسخهٔ
+\lr{0.3.1}
+نیز موفق بوده است. پس از بارگذاری، خروجی سریال مورد انتظار شامل این سطرهاست:
+
+\begin{LTR}
+\begin{lstlisting}
+Subscribed to control topic: iot/devices/esp8266-01/control
+Command response published: {"schema_version":1,...}
+\end{lstlisting}
+\end{LTR}
+
+برای آزمون اولیه فقط چراغ داخلی را کنترل کنید. آزمون
+\lr{heater}،
+\lr{cooler}
+یا
+\lr{relay}
+بدون سخت‌افزار قدرت مناسب و حفاظت مستقل انجام نشود.
+
+\section{استقلال کنترل از ارسال داده}
+در نسخهٔ
+\lr{0.3.1}
+پردازش فرمان منتظر زمان انتشار سنسورها نمی‌ماند. تابع
+\lr{mqttClient.loop()}
+در هر دور برنامه پیش از کار سنسورها اجرا می‌شود. همچنین اگر داده‌ها چند بسته باشند، در هر دور فقط یک بسته منتشر می‌شود و سپس کنترل دوباره به مسیر
+\lr{MQTT}
+برمی‌گردد.
+
+بنابراین افزایش تعداد سنسورها باعث اجرای یک حلقهٔ طولانی برای انتشار همهٔ بسته‌ها نمی‌شود. در پیاده‌سازی سنسور واقعی نیز نباید داخل
+\lr{readSensors}
+از تأخیر طولانی استفاده شود. سنسوری که تبدیل زمان‌بر دارد باید شروع اندازه‌گیری و خواندن نتیجه را در دو زمان جدا انجام دهد.

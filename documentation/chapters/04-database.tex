@@ -1,0 +1,256 @@
+\section{هدف و مرز ماژول}
+این ماژول فقط مسئول نگه‌داری داده است. از شبکه و
+\lr{MQTT}
+اطلاعی ندارد و تمام دستورهای
+\lr{SQL}
+در فایل زیر باقی می‌مانند:
+
+\begin{LTR}
+\begin{lstlisting}
+code/collector/database.py
+\end{lstlisting}
+\end{LTR}
+
+فایل پایگاه داده هنگام اجرا در مسیر زیر ساخته می‌شود و وارد
+\lr{Git}
+نمی‌شود:
+
+\begin{LTR}
+\begin{lstlisting}
+runtime/iot.db
+\end{lstlisting}
+\end{LTR}
+
+\section{چرا دو جدول؟}
+هر پیام ممکن است چند
+\lr{reading}
+داشته باشد. برای جلوگیری از تکرار مشخصات پیام، داده در دو جدول نگه‌داری می‌شود:
+
+\begin{itemize}
+  \item
+  \lr{telemetry\_batches}
+  یک ردیف برای خود بسته، زمان دریافت، دستگاه و متن اصلی
+  \lr{JSON}
+  دارد؛
+  \item
+  \lr{sensor\_readings}
+  برای هر سنسور یک ردیف عددی و قابل گزارش دارد.
+\end{itemize}
+
+اگر یک بسته شامل دما و رطوبت باشد، یک ردیف در جدول بسته‌ها و دو ردیف در جدول
+\lr{reading}
+ساخته می‌شود. فیلد
+\lr{batch\_id}
+این ردیف‌ها را به بستهٔ اصلی متصل می‌کند.
+
+\section{ساختار جدول بسته‌ها}
+ستون‌های اصلی جدول
+\lr{telemetry\_batches}
+عبارت‌اند از:
+
+\begin{itemize}
+  \item
+  \lr{id}
+  شناسهٔ داخلی و افزایشی پایگاه داده؛
+  \item
+  \lr{received\_at\_utc}
+  زمان دریافت پیام در رایانه؛
+  \item
+  \lr{topic}
+  موضوع واقعی
+  \lr{MQTT}
+  ؛
+  \item
+  \lr{device\_id}
+  و
+  \lr{message\_id}
+  برای شناسایی منبع و نوبت نمونه‌برداری؛
+  \item
+  \lr{batch\_index}
+  و
+  \lr{batch\_count}
+  برای داده‌هایی که در چند بسته ارسال شده‌اند؛
+  \item
+  \lr{payload\_json}
+  نسخهٔ اصلی پیام برای عیب‌یابی آینده.
+\end{itemize}
+
+\section{ساختار جدول
+\lr{reading}
+ها}
+جدول
+\lr{sensor\_readings}
+ستون‌های زیر را دارد:
+
+\begin{LTR}
+\begin{lstlisting}
+id | batch_id | sensor_id | value | unit
+\end{lstlisting}
+\end{LTR}
+
+قرارگرفتن مقدار در ستون عددی
+\lr{REAL}
+باعث می‌شود محاسبهٔ میانگین، کمینه و بیشینه ساده باشد. واحد جدا نگه‌داری می‌شود تا نام سنسور ثابت بماند.
+
+\section{راه‌اندازی مستقل پایگاه داده}
+این کد به
+\lr{Python 3.10}
+یا نسخهٔ جدیدتر نیاز دارد. نسخه را بررسی کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+python --version
+\end{lstlisting}
+\end{LTR}
+
+از ریشهٔ پروژه محیط مجازی بسازید. این کار فقط بار اول لازم است:
+
+\begin{LTR}
+\begin{lstlisting}
+# Windows PowerShell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Linux / macOS
+python3 -m venv .venv
+source .venv/bin/activate
+\end{lstlisting}
+\end{LTR}
+
+سپس وارد پوشهٔ
+\lr{collector}
+شوید و وابستگی را نصب کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+cd code/collector
+python -m pip install -r requirements.txt
+\end{lstlisting}
+\end{LTR}
+
+جدول‌ها را بدون اجرای کارگزار یا برد بسازید:
+
+\begin{LTR}
+\begin{lstlisting}
+python database.py
+\end{lstlisting}
+\end{LTR}
+
+خروجی مورد انتظار:
+
+\begin{LTR}
+\begin{lstlisting}
+Database ready: .../runtime/iot.db
+\end{lstlisting}
+\end{LTR}
+
+اجرای دوبارهٔ همین فرمان داده‌های قبلی را حذف نمی‌کند؛ فقط جدول‌ها و
+\lr{index}
+های وجودنداشته را می‌سازد.
+
+\section{استفاده از ماژول در کد دیگر}
+نمونهٔ زیر نشان می‌دهد که ماژول بدون
+\lr{MQTT}
+هم قابل استفاده است:
+
+\begin{LTR}
+\begin{lstlisting}[language=Python]
+from database import SensorDatabase
+
+payload = {
+    "device_id": "esp8266-01",
+    "message_id": 1,
+    "sampled_at_ms": 5000,
+    "batch_index": 1,
+    "batch_count": 1,
+    "readings": [
+        {"sensor_id": "temperature", "value": (*@\lr{24.6}@*), "unit": "celsius"}
+    ],
+}
+
+with SensorDatabase() as database:
+    batch_id = database.save_telemetry_batch(
+        "iot/devices/esp8266-01/telemetry",
+        payload,
+    )
+    print(batch_id)
+\end{lstlisting}
+\end{LTR}
+
+محیط
+\lr{with}
+تضمین می‌کند فایل پس از استفاده بسته شود. تابع ذخیره نیز بسته و
+\lr{reading}
+های آن را در یک
+\lr{transaction}
+می‌نویسد؛ بنابراین خطا در میانهٔ کار، بستهٔ ناقص باقی نمی‌گذارد.
+
+\section{مشاهدهٔ داده‌های ذخیره‌شده}
+برای مشاهدهٔ ده
+\lr{reading}
+آخر اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+python database.py --recent 10
+\end{lstlisting}
+\end{LTR}
+
+نمونهٔ خروجی:
+
+\begin{LTR}
+\begin{lstlisting}
+2026-08-22 10:13:51 esp8266-01 humidity=(*@\lr{58.2}@*) percent
+2026-08-22 10:13:51 esp8266-01 temperature=(*@\lr{24.6}@*) celsius
+\end{lstlisting}
+\end{LTR}
+
+برای بررسی مستقیم با ابزار خط فرمان
+\lr{SQLite}
+نیز می‌توان اجرا کرد:
+
+\begin{LTR}
+\begin{lstlisting}[language=SQL]
+sqlite3 runtime/iot.db
+
+.tables
+.headers on
+.mode column
+
+SELECT sensor_id, value, unit
+FROM sensor_readings
+ORDER BY id DESC
+LIMIT 10;
+\end{lstlisting}
+\end{LTR}
+
+\section{نمونهٔ گزارش ساده}
+میانگین هر سنسور با دستور زیر محاسبه می‌شود:
+
+\begin{LTR}
+\begin{lstlisting}[language=SQL]
+SELECT
+    sensor_id,
+    COUNT(*) AS sample_count,
+    ROUND(AVG(value), 2) AS average_value,
+    MIN(value) AS minimum_value,
+    MAX(value) AS maximum_value,
+    unit
+FROM sensor_readings
+GROUP BY sensor_id, unit
+ORDER BY sensor_id;
+\end{lstlisting}
+\end{LTR}
+
+این
+\lr{query}
+شروع مناسبی برای مرحلهٔ گزارش است، اما هنوز رابط کاربری یا نمودار ساخته نشده است.
+
+\section{پشتیبان‌گیری و پاک‌کردن دادهٔ آزمایشی}
+برای پشتیبان‌گیری، ابتدا
+\lr{collector}
+را متوقف و سپس فایل
+\lr{runtime/iot.db}
+را کپی کنید. برای شروع دوباره از پایگاه خالی،
+\lr{collector}
+را متوقف کنید و فایل پایگاه داده را دستی حذف کنید؛ اجرای بعدی جدول‌ها را دوباره می‌سازد. این کار همهٔ داده‌های محلی را حذف می‌کند و نباید بدون نسخهٔ پشتیبان انجام شود.

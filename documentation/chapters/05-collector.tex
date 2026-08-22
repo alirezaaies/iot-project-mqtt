@@ -1,0 +1,255 @@
+\section{مسئولیت
+\lr{collector}
+}
+فایل
+\lr{mqtt\_collector.py}
+به کارگزار وصل می‌شود، موضوع دادهٔ همهٔ دستگاه‌ها را می‌گیرد، پیام را بررسی می‌کند و فقط پیام معتبر را به
+\lr{database.py}
+تحویل می‌دهد. این فایل هیچ دستور
+\lr{SQL}
+ندارد.
+
+مسیر داده در این مرحله چنین است:
+
+\begin{LTR}
+\begin{lstlisting}
+ESP8266 -> Mosquitto -> mqtt_collector.py -> database.py -> SQLite
+\end{lstlisting}
+\end{LTR}
+
+\section{فایل‌های این مرحله}
+\begin{LTR}
+\begin{lstlisting}
+code/collector/
+|-- database.py
+|-- command_sender.py
+|-- mqtt_collector.py
+|-- requirements.txt
+|-- test_command_sender.py
+|-- test_collector.py
+`-- README.md
+\end{lstlisting}
+\end{LTR}
+
+فقط کتابخانهٔ
+\lr{paho-mqtt 2.1.0}
+وابستگی خارجی است. ماژول
+\lr{sqlite3}
+همراه خود پایتون نصب می‌شود. نسخهٔ دوم
+\lr{callback API}
+به‌صورت صریح استفاده شده است تا امضای
+\lr{callback}
+ها مبهم نباشد.
+
+\section{تنظیمات پیش‌فرض}
+مقادیر پیش‌فرض برای اجرای محلی عبارت‌اند از:
+
+\begin{LTR}
+\begin{lstlisting}
+broker:   localhost:1883
+topic:    iot/devices/+/telemetry
+database: runtime/iot.db
+\end{lstlisting}
+\end{LTR}
+
+علامت
+\lr{+}
+در موضوع یعنی
+\lr{collector}
+دادهٔ همهٔ شناسه‌های دستگاه را می‌گیرد. پیام وضعیت ذخیره نمی‌شود، زیرا هدف این مرحله فقط مجموعه‌دادهٔ سنسورهاست.
+
+\section{اعتبارسنجی پیش از ذخیره}
+تابع
+\lr{validate\_telemetry}
+موارد زیر را بررسی می‌کند:
+
+\begin{itemize}
+  \item پیام یک شیء
+  \lr{JSON}
+  باشد؛
+  \item نسخهٔ قرارداد برابر یک باشد؛
+  \item فیلدهای اصلی وجود داشته و نوع درست داشته باشند؛
+  \item شمارهٔ بسته بین یک و تعداد کل بسته‌ها باشد؛
+  \item فهرست
+  \lr{reading}
+  ها خالی نباشد؛
+  \item شناسه و واحد طول معقول داشته باشند؛
+  \item مقدار سنسور عدد محدود باشد و مقدار منطقی به‌عنوان عدد پذیرفته نشود.
+\end{itemize}
+
+پیام نامعتبر برنامه را متوقف نمی‌کند؛ علت ردشدن در
+\lr{log}
+نوشته و پیام بعدی پردازش می‌شود.
+
+\section{اجرای تست‌ها پیش از اتصال به کارگزار}
+پس از فعال‌کردن محیط مجازی، از پوشهٔ
+\lr{code/collector}
+اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+python -m unittest -v
+\end{lstlisting}
+\end{LTR}
+
+سه تست انجام می‌شود:
+
+\begin{enumerate}
+  \item ذخیرهٔ یک بستهٔ معتبر به‌صورت دو
+  \lr{reading}
+  ؛
+  \item ردکردن پیام بدون فهرست
+  \lr{reading}
+  ها؛
+  \item ردکردن مقدار منطقی به‌جای مقدار عددی سنسور.
+\end{enumerate}
+
+خروجی مورد انتظار با عبارت زیر پایان می‌یابد:
+
+\begin{LTR}
+\begin{lstlisting}
+Ran 3 tests
+
+OK
+\end{lstlisting}
+\end{LTR}
+
+این تست از فایل موقت استفاده می‌کند و داده‌ای به
+\lr{runtime/iot.db}
+اضافه نمی‌کند.
+
+\section{اجرای
+\lr{collector}
+}
+ابتدا کارگزار و سپس برنامه را اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+# Terminal 1
+mosquitto -c mosquitto-local.conf -v
+
+# Terminal 2, from code/collector
+python mqtt_collector.py
+\end{lstlisting}
+\end{LTR}
+
+خروجی اتصال موفق:
+
+\begin{LTR}
+\begin{lstlisting}
+INFO iot-collector: Database: .../runtime/iot.db
+INFO iot-collector: Connecting to MQTT broker at localhost:1883
+INFO iot-collector: Connected to MQTT; subscribed to iot/devices/+/telemetry
+\end{lstlisting}
+\end{LTR}
+
+پس از رسیدن پیام برد باید خروجی مشابه زیر دیده شود:
+
+\begin{LTR}
+\begin{lstlisting}
+INFO iot-collector: Saved batch 1: device=esp8266-01
+message=1 batch=1/1 readings=2
+\end{lstlisting}
+\end{LTR}
+
+برای توقف سالم از
+\lr{Ctrl+C}
+استفاده کنید.
+
+\section{آزمایش بدون برد}
+اگر برد در دسترس نیست، یک پیام معتبر را با ابزار خط فرمان منتشر کنید.
+\lr{collector}
+باید آن را مانند پیام برد ذخیره کند:
+
+\begin{LTR}
+\begin{lstlisting}
+mosquitto_pub -h localhost \
+  -t "iot/devices/test-device/telemetry" \
+  -m '{"schema_version":1,"device_id":"test-device",
+"message_id":1,"sampled_at_ms":1000,"batch_index":1,
+"batch_count":1,"readings":[{"sensor_id":"temperature",
+"value":(*@\lr{25.5}@*),"unit":"celsius"}]}'
+\end{lstlisting}
+\end{LTR}
+
+در
+\lr{Windows PowerShell}
+اگر نقل‌قول فرمان مشکل ایجاد کرد، متن
+\lr{JSON}
+را در یک متغیر قرار دهید:
+
+\begin{LTR}
+\begin{lstlisting}
+$payload = '{"schema_version":1,"device_id":"test-device",
+"message_id":1,"sampled_at_ms":1000,"batch_index":1,
+"batch_count":1,"readings":[{"sensor_id":"temperature",
+"value":(*@\lr{25.5}@*),"unit":"celsius"}]}'
+
+mosquitto_pub -h localhost `
+  -t "iot/devices/test-device/telemetry" `
+  -m $payload
+\end{lstlisting}
+\end{LTR}
+
+سپس نتیجه را ببینید:
+
+\begin{LTR}
+\begin{lstlisting}
+python database.py --recent 5
+\end{lstlisting}
+\end{LTR}
+
+\section{تغییر نشانی یا مسیر بدون ویرایش کد}
+تنظیمات با متغیر محیطی قابل تغییرند. نمونه در
+\lr{Windows PowerShell}
+:
+
+\begin{LTR}
+\begin{lstlisting}
+(*@\lr{\texttt{\$env:IOT\_MQTT\_HOST = "192.168.1.15"}}@*)
+(*@\lr{\texttt{\$env:IOT\_MQTT\_PORT = "1883"}}@*)
+(*@\lr{\texttt{\$env:IOT\_DATABASE\_PATH = "D:\textbackslash iot-data\textbackslash iot.db"}}@*)
+python mqtt_collector.py
+\end{lstlisting}
+\end{LTR}
+
+نمونه در
+\lr{Linux/macOS}
+:
+
+\begin{LTR}
+\begin{lstlisting}
+(*@\lr{\texttt{export IOT\_MQTT\_HOST="192.168.1.15"}}@*)
+(*@\lr{\texttt{export IOT\_MQTT\_PORT="1883"}}@*)
+(*@\lr{\texttt{export IOT\_DATABASE\_PATH="/var/tmp/iot.db"}}@*)
+python mqtt_collector.py
+\end{lstlisting}
+\end{LTR}
+
+این متغیرها فقط برای همان پایانه هستند و اطلاعات محرمانه وارد مخزن نمی‌کنند.
+
+\section{رفتار بسته‌های متعدد}
+برای صد سنسور، برد هفده بسته با
+\lr{message\_id}
+یکسان می‌فرستد.
+\lr{collector}
+هر بسته را بلافاصله ذخیره می‌کند. فیلدهای
+\lr{batch\_index}
+و
+\lr{batch\_count}
+در جدول بسته‌ها باقی می‌مانند تا در گزارش بعدی بتوان کامل‌بودن یک نوبت نمونه‌برداری را بررسی کرد. این مرحله منتظر رسیدن همهٔ بسته‌ها نمی‌ماند؛ در نتیجه قطع یک بسته مانع ذخیرهٔ بسته‌های سالم نمی‌شود.
+
+\section{نتیجهٔ آزمایش این مرحله}
+در آزمایش انجام‌شده،
+\lr{collector}
+به کارگزار محلی متصل شد، پیام دو سنسور را دریافت کرد و یک
+\lr{batch}
+همراه با دو
+\lr{reading}
+در
+\lr{SQLite}
+نوشت. هر سه تست مستقل نیز موفق بودند. آزمایش برد واقعی باید پس از آزادشدن درگاه سریال و
+\lr{upload}
+نسخهٔ
+\lr{0.2.0}
+تکرار شود.

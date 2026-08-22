@@ -4,9 +4,8 @@ The code is split into a few folders based on practical tasks.
 
 | Directory | Purpose |
 |---|---|
-| `arduino/` | ESP8266 sketch, sensor reading, Wi-Fi, and device-side MQTT code |
-| `backend/` | Python logic, MQTT receiver/sender, validation, and coordination |
-| `database/` | SQLite schema and all database access code |
+| `arduino/` | ESP8266 sketch, sensor reading, actuators, Wi-Fi, and device-side MQTT code |
+| `collector/` | Python MQTT receiving, command sending, validation, and SQLite storage |
 | `webapp/` | Flask routes, templates, static files, and HTTP API |
 | `contracts/` | Topic names and message examples shared by device and Python code |
 | `tests/` | Tests covering connections between these folders |
@@ -14,11 +13,15 @@ The code is split into a few folders based on practical tasks.
 ## Simple dependency rule
 
 ```text
-Arduino <-> MQTT <-> Backend <-> Database
+Sensors -> ESP8266 -> MQTT -> Collector -> SQLite
+                         ^
                          |
-                       Webapp
+                  Command sender
 ```
 
-The web application should call backend functions. SQL should stay in the database folder. Arduino and Python should agree through files in the contracts folder.
+SQL stays in `collector/database.py`; MQTT callbacks call its methods instead
+of containing SQL. Arduino and Python use the documented versioned JSON
+contract. Device output logic stays in `arduino/mqtt/src/actuators.cpp`, not
+inside the MQTT callback.
 
 Do not create extra layers or subdirectories until the number of files makes them necessary.
