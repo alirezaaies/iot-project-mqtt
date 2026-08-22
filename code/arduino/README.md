@@ -1,13 +1,19 @@
-# Arduino and ESP8266
+# ESP8266 firmware
 
-Put the first ESP8266 sketch and its hardware-related files in this directory.
+The first firmware module is the PlatformIO project in `mqtt/`. It connects a
+NodeMCU ESP8266 to Wi-Fi and publishes test telemetry to a local MQTT broker.
 
-When implementation starts, the main sketch can be:
+Before building, copy `mqtt/include/secrets.example.h` to
+`mqtt/include/secrets.h` and enter the local Wi-Fi credentials. The copied file
+is ignored by Git.
 
-```text
-code/arduino/arduino.ino
+Run these commands from `code/arduino/mqtt`:
+
+```bash
+pio run
+pio run --target upload
+pio device monitor
 ```
 
-This filename matches the current sketch directory and works naturally with the Arduino IDE. Supporting `.h` and `.cpp` files can remain beside it until the project becomes large.
-
-This directory will contain sensor reading, Wi-Fi connection, MQTT communication, and device command handling. Do not store passwords in the committed sketch.
+Broker setup and the complete Windows, Linux, and macOS test procedure are in
+chapter 5 of the Persian report.

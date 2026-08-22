@@ -1,0 +1,147 @@
+\section{ابزارهای لازم}
+برای این مرحله به ابزارهای زیر نیاز است:
+
+\begin{itemize}
+  \item
+  \lr{VS Code}
+  و افزونهٔ
+  \lr{PlatformIO IDE}
+  ؛
+  \item کارگزار و ابزارهای خط فرمان
+  \lr{Mosquitto}
+  ؛
+  \item
+  \lr{TeXstudio}
+  و
+  \lr{XeLaTeX}
+  برای ویرایش همین سند.
+\end{itemize}
+
+\subsection{نصب
+\lr{Mosquitto}
+}
+در
+\lr{Windows}
+نصب‌کنندهٔ رسمی
+\lr{Mosquitto}
+را اجرا و مسیر نصب را به
+\lr{PATH}
+اضافه کنید. در
+\lr{Linux}
+یا
+\lr{macOS}
+از فرمان متناسب استفاده کنید:
+
+\begin{LTR}
+\begin{lstlisting}[language=bash]
+# Ubuntu / Debian
+sudo apt update
+sudo apt install mosquitto mosquitto-clients
+
+# macOS with Homebrew
+brew install mosquitto
+\end{lstlisting}
+\end{LTR}
+
+نصب را در یک پایانهٔ تازه بررسی کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+mosquitto -h
+mosquitto_pub -h
+mosquitto_sub -h
+\end{lstlisting}
+\end{LTR}
+
+\section{آزمایش مستقل روی رایانه}
+این آزمایش باید پیش از روشن‌کردن برد موفق شود.
+
+\begin{stepbox}{گام ۱: اجرای کارگزار}
+در پایانهٔ اول اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+mosquitto -v
+\end{lstlisting}
+\end{LTR}
+\end{stepbox}
+
+\begin{stepbox}{گام ۲: انتظار برای پیام}
+در پایانهٔ دوم اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+mosquitto_sub -h localhost -t "iot/test" -v
+\end{lstlisting}
+\end{LTR}
+\end{stepbox}
+
+\begin{stepbox}{گام ۳: ارسال پیام}
+در پایانهٔ سوم اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+mosquitto_pub -h localhost -t "iot/test" -m "broker-ok"
+\end{lstlisting}
+\end{LTR}
+\end{stepbox}
+
+خروجی مورد انتظار در پایانهٔ دوم:
+
+\begin{LTR}
+\begin{lstlisting}
+iot/test broker-ok
+\end{lstlisting}
+\end{LTR}
+
+اگر این خروجی دیده نشد، هنوز سراغ برد نروید. ابتدا اجرای سرویس، شمارهٔ درگاه و پیام خطای پایانهٔ اول را بررسی کنید.
+
+\section{اجازهٔ اتصال از شبکهٔ محلی}
+اتصال
+\lr{localhost}
+فقط روی همان رایانه کار می‌کند. برای آزمایش محلی برد، فایلی به نام
+\lr{mosquitto-local.conf}
+در یک پوشهٔ موقت بسازید:
+
+\begin{LTR}
+\begin{lstlisting}
+listener 1883
+allow_anonymous true
+\end{lstlisting}
+\end{LTR}
+
+کارگزار آزمایشی را با این فایل اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+mosquitto -c mosquitto-local.conf -v
+\end{lstlisting}
+\end{LTR}
+
+\begin{notebox}
+این تنظیم فقط برای توسعه در شبکهٔ خصوصی و مطمئن است. درگاه
+\lr{1883}
+را روی روتر به اینترنت منتقل نکنید. در نسخهٔ نهایی، نام کاربری، رمز و ارتباط رمزگذاری‌شده اضافه خواهد شد.
+\end{notebox}
+
+\section{پیداکردن نشانی رایانه}
+برد به نشانی
+\lr{IPv4}
+رایانه نیاز دارد. یکی از فرمان‌های زیر را اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+# Windows
+ipconfig
+
+# Linux
+ip addr
+
+# macOS
+ifconfig
+\end{lstlisting}
+\end{LTR}
+
+برد و رایانه باید به یک شبکه متصل باشند. در دیوارهٔ آتش، فقط دسترسی ورودی
+\lr{1883/TCP}
+از شبکهٔ خصوصی را مجاز کنید.

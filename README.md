@@ -6,7 +6,9 @@ The first version will use ESP8266, Arduino code, MQTT, Python, SQLite, and Flas
 
 ## Current status
 
-The repository currently contains the project structure and documentation only. Implementation will be added one small step at a time.
+Step 1 is implemented: the local MQTT broker is tested independently, then the
+ESP8266 publishes status and test telemetry. Database, Python, control, and web
+modules remain intentionally unimplemented.
 
 ## Project structure
 
@@ -50,14 +52,13 @@ This is a simple separation rule, not a requirement to build every possible repl
 
 ## Recommended implementation order
 
-1. Define the first MQTT topics and JSON payload.
-2. Publish a fixed message from ESP8266.
-3. Receive the message with a small Python backend script.
-4. Create the SQLite database and store the message.
-5. Read stored data through Flask.
-6. Display the data on a simple page.
-7. Add one safe control command, such as changing an LED state.
-8. Add integration tests and local deployment instructions.
+1. Test the local MQTT broker without the ESP8266.
+2. Publish status and test telemetry from the ESP8266.
+3. Store received data in a local SQLite database.
+4. Read and display stored data with a small Python module.
+5. Add one safe control command, such as changing an LED state.
+6. Add a simple web application.
+7. Add integration tests and local deployment instructions.
 
 Each step should work independently before it is connected to the next step.
 

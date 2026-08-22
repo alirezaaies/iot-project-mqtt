@@ -1,0 +1,210 @@
+\section{سخت‌افزار و ساختار فایل‌ها}
+این راهنما برای برد
+\lr{NodeMCU 1.0 ESP-12E}
+و کابل دادهٔ
+\lr{USB}
+نوشته شده است. پروژهٔ
+\lr{firmware}
+فقط چهار فایل لازم دارد:
+
+\begin{LTR}
+\begin{lstlisting}
+code/arduino/mqtt/
+|-- platformio.ini
+|-- include/
+|   |-- secrets.example.h
+|   `-- secrets.h          # local and ignored by Git
+`-- src/
+    `-- main.cpp
+\end{lstlisting}
+\end{LTR}
+
+\section{تنظیم اطلاعات محلی}
+ابتدا وارد پوشهٔ پروژهٔ برد شوید و فایل نمونه را کپی کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+cd code/arduino/mqtt
+
+# Linux / macOS
+cp include/secrets.example.h include/secrets.h
+
+# Windows PowerShell
+Copy-Item include/secrets.example.h include/secrets.h
+\end{lstlisting}
+\end{LTR}
+
+در فایل
+\lr{include/secrets.h}
+نام و رمز شبکه را وارد کنید. این فایل توسط
+\lr{Git}
+نادیده گرفته می‌شود. رمز را در
+\lr{main.cpp}
+یا مستندات ننویسید.
+
+سپس در
+\lr{src/main.cpp}
+مقدار
+\lr{MQTT\_HOST}
+را برابر نشانی رایانه قرار دهید:
+
+\begin{LTR}
+\begin{lstlisting}[language=C++]
+constexpr char MQTT_HOST[] = "(*@\lr{192.168.1.15}@*)";
+\end{lstlisting}
+\end{LTR}
+
+این نشانی فقط نمونه است. نشانی
+\lr{127.0.0.1}
+یا
+\lr{localhost}
+برای برد قابل استفاده نیست.
+
+\section{رفتار
+\lr{firmware}
+}
+کد فعلی چهار مسئولیت دارد:
+
+\begin{enumerate}
+  \item اتصال به شبکه و نمایش نشانی برد؛
+  \item اتصال به کارگزار و تلاش دوباره بدون متوقف‌کردن برنامه؛
+  \item انتشار وضعیت
+  \lr{online/offline}
+  ؛
+  \item انتشار یک مقدار آزمایشی هر پنج ثانیه.
+\end{enumerate}
+
+حسگر و فرمان کنترل در این نسخه وجود ندارند. این جداسازی عمدی است تا ارتباط پایه به‌تنهایی آزمایش شود.
+
+\section{موضوع‌ها و پیام‌ها}
+شناسهٔ دستگاه
+\lr{esp8266-01}
+است و دو موضوع زیر استفاده می‌شود:
+
+\begin{LTR}
+\begin{lstlisting}
+iot/devices/esp8266-01/status
+iot/devices/esp8266-01/telemetry
+\end{lstlisting}
+\end{LTR}
+
+نمونهٔ پیام داده:
+
+\begin{LTR}
+\begin{lstlisting}
+{
+  "device_id": "esp8266-01",
+  "uptime_ms": 15342,
+  "sample_value": 418,
+  "firmware": "0.1.0"
+}
+\end{lstlisting}
+\end{LTR}
+
+مقدار
+\lr{sample\_value}
+ساختگی است و اندازه‌گیری محیط محسوب نمی‌شود. پیام وضعیت به‌صورت نگه‌داری‌شده منتشر می‌شود و در قطع ناگهانی، سازوکار آخرین وصیت
+\lr{MQTT}
+وضعیت را به
+\lr{offline}
+تغییر می‌دهد.
+
+\section{ساخت
+\lr{firmware}
+}
+نسخهٔ محیط و کتابخانه‌ها در
+\lr{platformio.ini}
+ثابت شده‌اند تا ساخت روی سیستم‌های مختلف تکرارپذیر باشد. در پوشهٔ پروژه اجرا کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+pio run
+\end{lstlisting}
+\end{LTR}
+
+خروجی موفق با عبارت زیر پایان می‌یابد:
+
+\begin{LTR}
+\begin{lstlisting}
+========================= [SUCCESS] =========================
+\end{lstlisting}
+\end{LTR}
+
+در آزمایش انجام‌شده برای این نسخه، ساخت موفق بود و حدود
+\lr{35.3\%}
+حافظهٔ
+\lr{RAM}
+و
+\lr{27.2\%}
+حافظهٔ برنامه مصرف شد.
+
+\section{ارسال روی برد و مشاهدهٔ خروجی}
+برد را با کابل داده وصل کنید و درگاه‌ها را بررسی کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+pio device list
+\end{lstlisting}
+\end{LTR}
+
+سپس
+\lr{firmware}
+را ارسال و پایانهٔ سریال را باز کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+pio run --target upload
+pio device monitor
+\end{lstlisting}
+\end{LTR}
+
+خروجی مورد انتظار:
+
+\begin{LTR}
+\begin{lstlisting}
+Wi-Fi connected. Device IP: (*@\lr{192.168.1.x}@*)
+MQTT connected.
+Telemetry published: {"device_id":"esp8266-01",...}
+\end{lstlisting}
+\end{LTR}
+
+\section{تأیید پیام روی رایانه}
+در پایانهٔ دیگری همهٔ پیام‌های دستگاه را دریافت کنید:
+
+\begin{LTR}
+\begin{lstlisting}
+mosquitto_sub -h (*@\lr{192.168.1.15}@*) \
+  -t "iot/devices/esp8266-01/#" -v
+\end{lstlisting}
+\end{LTR}
+
+نشانی نمونه را با نشانی رایانه جایگزین کنید. ابتدا باید پیام وضعیت و سپس پیام‌های دوره‌ای داده دیده شوند.
+
+\section{آزمایش اتصال دوباره}
+شبکهٔ بی‌سیم را برای مدت کوتاه قطع و دوباره وصل کنید. برنامه نباید قفل شود. پس از برگشت شبکه باید دوباره پیام
+\lr{MQTT connected.}
+و داده‌های دوره‌ای دیده شوند.
+
+\section{عیب‌یابی کوتاه}
+\begin{itemize}
+  \item حالت اتصال
+  \lr{-2}
+  معمولاً به نشانی نادرست، دیوارهٔ آتش یا تنظیم
+  \lr{listener}
+  مربوط است.
+  \item برد
+  \lr{ESP8266}
+  به شبکهٔ
+  \lr{2.4 GHz}
+  نیاز دارد.
+  \item نبودن درگاه سریال معمولاً از کابل بدون مسیر داده یا درایور مبدل
+  \lr{USB}
+  است.
+  \item اگر
+  \lr{upload}
+  انجام نشد، برنامه‌ای را که درگاه سریال را باز نگه داشته است ببندید و دوباره تلاش کنید.
+\end{itemize}
+
+برای این مرحله تصویر لازم نیست؛ خروجی پایانه، موضوع پیام و متن
+\lr{JSON}
+شاهد دقیق‌تر و قابل جست‌وجویی برای عیب‌یابی هستند.

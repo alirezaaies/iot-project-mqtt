@@ -1,801 +1,141 @@
-#include <Arduino.h>   
-
+#include <Arduino.h>
+#include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include <ArduinoJson.h>
 
-// ============================================================
-// DEVICE CONFIGURATION
-// ============================================================
-const char* DEVICE_ID = "ESP567";
-const char* FIRMWARE_VERSION = "1.0.0";
-
-
-// ============================================================
-// WIFI CONFIGURATION
-// ============================================================
-const char* WIFI_SSID = "Azmon Gostar";
-const char* WIFI_PASSWORD = "agfaagfa1388";
-
-
-// ============================================================
-// MQTT CONFIGURATION
-// ============================================================
-const char* MQTT_SERVER = "192.168.1.15";
-const uint16_t MQTT_PORT = 1883;
-
-
-// ============================================================
-// MQTT TOPICS
-// ============================================================
-const char* TOPIC_DATA = "home/ESP567/data";
-const char* TOPIC_STATUS = "home/ESP567/status";
-const char* TOPIC_CONTROL = "home/ESP567/control";
-const char* TOPIC_RESPONSE = "home/ESP567/response";
-
-
-// ============================================================
-// TIMING
-// ============================================================
-
-const unsigned long TELEMETRY_INTERVAL = 2000;
-const unsigned long WIFI_RECONNECT_INTERVAL = 5000;
-const unsigned long MQTT_RECONNECT_INTERVAL = 5000;
-
-
-// ============================================================
-// OBJECTS
-// ============================================================
-
-WiFiClient espClient;
-
-PubSubClient mqttClient(espClient);
-
-
-// ============================================================
-// STATE
-// ============================================================
-unsigned long lastTelemetryTime = 0;
-unsigned long lastWiFiReconnectAttempt = 0;
-unsigned long lastMQTTReconnectAttempt = 0;
-
-
-// ============================================================
-// LED
-// ============================================================
-bool ledState = false;
-
-
-// ============================================================
-// WIFI
-// ============================================================
-void connectWiFi();
-
-// ============================================================
-// WIFI STATUS
-// ============================================================
-void checkWiFi();
-
-// ============================================================
-// MQTT STATUS MESSAGE
-// ============================================================
-void publishStatus(const char* status);
-
-// ============================================================
-// MQTT CONNECT
-// ============================================================
-bool connectMQTT();
-
-
-// ============================================================
-// LED CONTROL
-// ============================================================
-void setLED(bool state);
-
-// ============================================================
-// COMMAND RESPONSE
-// ============================================================
-void publishCommandResponse(const char* commandId, const char* command, bool success, const char* message);
-
-// ============================================================
-// MQTT CALLBACK
-// ============================================================
-void callback(char* topic, byte* payload, unsigned int length);
-
-// ============================================================
-// TELEMETRY
-// ============================================================
-void publishTelemetry();
-
-
-// ============================================================
-// SETUP
-// ============================================================
-
-void setup()
-{
-    Serial.begin(
-        115200
-    );
-
-    delay(100);
-
-    Serial.println();
-    Serial.println();
-    Serial.println(
-        "================================"
-    );
-
-    Serial.println(
-        "ESP8266 IoT Device"
-    );
-
-    Serial.print(
-        "Device ID: "
-    );
-
-    Serial.println(
-        DEVICE_ID
-    );
-
-    Serial.print(
-        "Firmware: "
-    );
-
-    Serial.println(
-        FIRMWARE_VERSION
-    );
-
-    Serial.println(
-        "================================"
-    );
-
-
-    // --------------------------------------------------------
-    // LED
-    // --------------------------------------------------------
-
-    pinMode(
-        LED_BUILTIN,
-        OUTPUT
-    );
-
-    setLED(
-        false
-    );
-
-
-    // --------------------------------------------------------
-    // Random seed
-    // --------------------------------------------------------
-
-    randomSeed(
-        micros()
-    );
-
-
-    // --------------------------------------------------------
-    // MQTT
-    // --------------------------------------------------------
-
-    mqttClient.setServer(
-        MQTT_SERVER,
-        MQTT_PORT
-    );
-
-    mqttClient.setCallback(
-        callback
-    );
-
-
-    // --------------------------------------------------------
-    // Start WiFi
-    // --------------------------------------------------------
-
-    WiFi.mode(
-        WIFI_STA
-    );
-
-    WiFi.begin(
-        WIFI_SSID,
-        WIFI_PASSWORD
-    );
-
-
-    Serial.println(
-        "Starting WiFi..."
-    );
-} // end of void setup
-
-
-// ============================================================
-// LOOP
-// ============================================================
-
-void loop()
-{
-    // --------------------------------------------------------
-    // WiFi
-    // --------------------------------------------------------
-
-    checkWiFi();
-
-
-    // --------------------------------------------------------
-    // MQTT
-    // --------------------------------------------------------
-
-    if (
-        WiFi.status()
-        == WL_CONNECTED
-    )
-    {
-        if (!mqttClient.connected())
-        {
-            connectMQTT();
-        }
-        else
-        {
-            mqttClient.loop();
-        }
-    }
-
-
-    // --------------------------------------------------------
-    // Telemetry
-    // --------------------------------------------------------
-
-    unsigned long now =
-        millis();
-
-
-    if (
-        mqttClient.connected()
-        &&
-        now - lastTelemetryTime
-            >= TELEMETRY_INTERVAL
-    )
-    {
-        lastTelemetryTime =
-            now;
-
-        publishTelemetry();
-    }
-
-
-    // --------------------------------------------------------
-    // Small pause
-    // --------------------------------------------------------
-
-    delay(10);
-} // end of void loop
-
-
-// ==============================================================================================
-// Start declaring functions --------------------------------------------------------------------
-
-void connectWiFi()
-{
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        return;
-    }
-
-    unsigned long now = millis();
-
-    if (
-        now - lastWiFiReconnectAttempt
-        < WIFI_RECONNECT_INTERVAL
-    )
-    {
-        return;
-    }
-
-    lastWiFiReconnectAttempt = now;
-
-    Serial.println();
-    Serial.println("Connecting to WiFi...");
-
-    WiFi.mode(WIFI_STA);
-
-    WiFi.begin(
-        WIFI_SSID,
-        WIFI_PASSWORD
-    );
+#include "secrets.h"
+
+// The first firmware module only publishes test telemetry through MQTT.
+// Sensors and control commands are deliberately left for later modules.
+namespace config {
+constexpr char DEVICE_ID[] = "esp8266-01";
+constexpr char FIRMWARE_VERSION[] = "0.1.0";
+constexpr char MQTT_HOST[] = "192.168.1.15";
+constexpr uint16_t MQTT_PORT = 1883;
+constexpr unsigned long TELEMETRY_INTERVAL_MS = 5000;
+constexpr unsigned long RECONNECT_INTERVAL_MS = 5000;
+}  // namespace config
+
+WiFiClient networkClient;
+PubSubClient mqttClient(networkClient);
+
+unsigned long lastTelemetryAt = 0;
+unsigned long lastWiFiAttemptAt = 0;
+unsigned long lastMqttAttemptAt = 0;
+bool wifiWasConnected = false;
+
+String topicFor(const char* suffix) {
+  return String("iot/devices/") + config::DEVICE_ID + "/" + suffix;
 }
 
-void checkWiFi()
-{
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        static bool wasConnected = false;
-
-        if (!wasConnected)
-        {
-            Serial.println();
-            Serial.println("WiFi connected.");
-
-            Serial.print("ESP IP: ");
-            Serial.println(
-                WiFi.localIP()
-            );
-
-            wasConnected = true;
-        }
-
-        return;
-    }
-
-    Serial.println(
-        "WiFi disconnected."
-    );
-
-    connectWiFi();
+void startWiFiConnection() {
+  Serial.print("Connecting to Wi-Fi SSID: ");
+  Serial.println(WIFI_SSID);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  lastWiFiAttemptAt = millis();
 }
 
-void publishStatus(const char* status)
-{
-    if (!mqttClient.connected())
-    {
-        return;
+void maintainWiFi() {
+  if (WiFi.status() == WL_CONNECTED) {
+    if (!wifiWasConnected) {
+      wifiWasConnected = true;
+      Serial.print("Wi-Fi connected. Device IP: ");
+      Serial.println(WiFi.localIP());
     }
+    return;
+  }
 
-    StaticJsonDocument<200> doc;
+  if (wifiWasConnected) {
+    wifiWasConnected = false;
+    Serial.println("Wi-Fi disconnected.");
+  }
 
-    doc["device"] = DEVICE_ID;
-    doc["status"] = status;
-    doc["firmware"] = FIRMWARE_VERSION;
-
-    char buffer[200];
-
-    serializeJson(
-        doc,
-        buffer,
-        sizeof(buffer)
-    );
-
-    mqttClient.publish(
-        TOPIC_STATUS,
-        buffer,
-        true
-    );
-
-    Serial.print(
-        "Status published: "
-    );
-
-    Serial.println(buffer);
+  if (millis() - lastWiFiAttemptAt >= config::RECONNECT_INTERVAL_MS) {
+    startWiFiConnection();
+  }
 }
 
-bool connectMQTT()
-{
-    if (
-        WiFi.status()
-        != WL_CONNECTED
-    )
-    {
-        return false;
-    }
+void publishStatus(const char* status) {
+  StaticJsonDocument<128> document;
+  document["device_id"] = config::DEVICE_ID;
+  document["status"] = status;
+  document["firmware"] = config::FIRMWARE_VERSION;
 
-    if (mqttClient.connected())
-    {
-        return true;
-    }
-
-    unsigned long now = millis();
-
-    if (
-        now - lastMQTTReconnectAttempt
-        < MQTT_RECONNECT_INTERVAL
-    )
-    {
-        return false;
-    }
-
-    lastMQTTReconnectAttempt = now;
-
-    Serial.println();
-    Serial.println(
-        "Connecting to MQTT..."
-    );
-
-    // --------------------------------------------------------
-    // Last Will message
-    // --------------------------------------------------------
-
-    StaticJsonDocument<200> offlineDoc;
-
-    offlineDoc["device"] = DEVICE_ID;
-    offlineDoc["status"] = "offline";
-    offlineDoc["firmware"] = FIRMWARE_VERSION;
-
-    char offlineBuffer[200];
-
-    serializeJson(
-        offlineDoc,
-        offlineBuffer,
-        sizeof(offlineBuffer)
-    );
-
-
-    String clientId =
-        String(DEVICE_ID)
-        + "-"
-        + String(ESP.getChipId(), HEX);
-
-
-    bool connected = mqttClient.connect(
-        clientId.c_str(),
-
-        TOPIC_STATUS,
-
-        1,
-
-        true,
-
-        offlineBuffer
-    );
-
-
-    if (!connected)
-    {
-        Serial.print(
-            "MQTT connection failed. State: "
-        );
-
-        Serial.println(
-            mqttClient.state()
-        );
-
-        return false;
-    }
-
-
-    Serial.println(
-        "MQTT connected."
-    );
-
-
-    // --------------------------------------------------------
-    // Subscribe to commands
-    // --------------------------------------------------------
-
-    bool subscribed =
-        mqttClient.subscribe(
-            TOPIC_CONTROL,
-            1
-        );
-
-
-    if (!subscribed)
-    {
-        Serial.println(
-            "ERROR: Failed to subscribe to control topic."
-        );
-
-        return false;
-    }
-
-
-    Serial.println(
-        "Subscribed to control topic."
-    );
-
-
-    // --------------------------------------------------------
-    // Publish online status
-    // --------------------------------------------------------
-
-    publishStatus(
-        "online"
-    );
-
-
-    return true;
+  char payload[128];
+  serializeJson(document, payload, sizeof(payload));
+  mqttClient.publish(topicFor("status").c_str(), payload, true);
 }
 
-void setLED(bool state)
-{
-    ledState = state;
+void connectMqtt() {
+  if (WiFi.status() != WL_CONNECTED || mqttClient.connected()) {
+    return;
+  }
+  if (millis() - lastMqttAttemptAt < config::RECONNECT_INTERVAL_MS) {
+    return;
+  }
+  lastMqttAttemptAt = millis();
 
-    // ESP8266 built-in LED is active LOW.
-    if (ledState)
-    {
-        digitalWrite(
-            LED_BUILTIN,
-            LOW
-        );
-    }
-    else
-    {
-        digitalWrite(
-            LED_BUILTIN,
-            HIGH
-        );
-    }
+  const String statusTopic = topicFor("status");
+  const String clientId = String(config::DEVICE_ID) + "-" +
+                          String(ESP.getChipId(), HEX);
+  const String offlinePayload =
+      String("{\"device_id\":\"") + config::DEVICE_ID +
+      "\",\"status\":\"offline\",\"firmware\":\"" +
+      config::FIRMWARE_VERSION + "\"}";
+
+  Serial.print("Connecting to MQTT broker: ");
+  Serial.println(config::MQTT_HOST);
+  if (!mqttClient.connect(clientId.c_str(), statusTopic.c_str(), 1, true,
+                          offlinePayload.c_str())) {
+    Serial.print("MQTT connection failed; state = ");
+    Serial.println(mqttClient.state());
+    return;
+  }
+
+  Serial.println("MQTT connected.");
+  publishStatus("online");
 }
 
-void publishCommandResponse(const char* commandId, const char* command, bool success, const char* message)
-{
-    if (!mqttClient.connected())
-    {
-        return;
-    }
+void publishTelemetry() {
+  StaticJsonDocument<192> document;
+  document["device_id"] = config::DEVICE_ID;
+  document["uptime_ms"] = millis();
+  document["sample_value"] = random(0, 1024);  // Replaced by a sensor later.
+  document["firmware"] = config::FIRMWARE_VERSION;
 
-    StaticJsonDocument<300> doc;
-
-    doc["id"] = commandId;
-    doc["device"] = DEVICE_ID;
-    doc["command"] = command;
-    doc["success"] = success;
-    doc["message"] = message;
-
-    char buffer[300];
-
-    serializeJson(
-        doc,
-        buffer,
-        sizeof(buffer)
-    );
-
-    mqttClient.publish(
-        TOPIC_RESPONSE,
-        buffer,
-        false
-    );
-
-    Serial.print(
-        "Command response: "
-    );
-
-    Serial.println(buffer);
+  char payload[192];
+  serializeJson(document, payload, sizeof(payload));
+  if (mqttClient.publish(topicFor("telemetry").c_str(), payload)) {
+    Serial.print("Telemetry published: ");
+    Serial.println(payload);
+  } else {
+    Serial.println("Telemetry publish failed.");
+  }
 }
 
-void callback(char* topic, byte* payload, unsigned int length)
-{
-    Serial.println();
-    Serial.println(
-        "MQTT message received."
-    );
+void setup() {
+  Serial.begin(115200);
+  delay(100);
+  Serial.println("\nESP8266 MQTT telemetry - firmware 0.1.0");
 
-    Serial.print(
-        "Topic: "
-    );
-
-    Serial.println(topic);
-
-
-    // --------------------------------------------------------
-    // Make payload into JSON
-    // --------------------------------------------------------
-
-    StaticJsonDocument<300> doc;
-
-    DeserializationError error =
-        deserializeJson(
-            doc,
-            payload,
-            length
-        );
-
-
-    if (error)
-    {
-        Serial.print(
-            "JSON error: "
-        );
-
-        Serial.println(
-            error.c_str()
-        );
-
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // Verify device
-    // --------------------------------------------------------
-
-    const char* device =
-        doc["device"];
-
-    if (device == nullptr)
-    {
-        Serial.println(
-            "ERROR: Missing device."
-        );
-
-        return;
-    }
-
-
-    if (
-        strcmp(
-            device,
-            DEVICE_ID
-        ) != 0
-    )
-    {
-        Serial.println(
-            "ERROR: Command is for another device."
-        );
-
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // Get command information
-    // --------------------------------------------------------
-
-    const char* commandId =
-        doc["id"];
-
-    const char* command =
-        doc["command"];
-
-
-    if (commandId == nullptr)
-    {
-        Serial.println(
-            "ERROR: Missing command ID."
-        );
-
-        return;
-    }
-
-
-    if (command == nullptr)
-    {
-        Serial.println(
-            "ERROR: Missing command."
-        );
-
-        return;
-    }
-
-
-    Serial.print(
-        "Command ID: "
-    );
-
-    Serial.println(
-        commandId
-    );
-
-
-    Serial.print(
-        "Command: "
-    );
-
-    Serial.println(
-        command
-    );
-
-
-    // --------------------------------------------------------
-    // LED command
-    // --------------------------------------------------------
-
-    if (
-        strcmp(
-            command,
-            "LED"
-        ) == 0
-    )
-    {
-        if (!doc["value"].is<bool>())
-        {
-            publishCommandResponse(
-                commandId,
-                command,
-                false,
-                "LED value must be boolean"
-            );
-
-            return;
-        }
-
-
-        bool value =
-            doc["value"].as<bool>();
-
-
-        setLED(
-            value
-        );
-
-
-        publishCommandResponse(
-            commandId,
-            command,
-            true,
-            value
-                ? "LED turned ON"
-                : "LED turned OFF"
-        );
-
-
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // Unknown command
-    // --------------------------------------------------------
-
-    publishCommandResponse(
-        commandId,
-        command,
-        false,
-        "Unknown command"
-    );
+  randomSeed(micros());
+  mqttClient.setServer(config::MQTT_HOST, config::MQTT_PORT);
+  mqttClient.setBufferSize(256);
+  startWiFiConnection();
 }
 
-void publishTelemetry()
-{
-    if (!mqttClient.connected())
-    {
-        return;
+void loop() {
+  maintainWiFi();
+  connectMqtt();
+
+  if (mqttClient.connected()) {
+    mqttClient.loop();
+    if (millis() - lastTelemetryAt >= config::TELEMETRY_INTERVAL_MS) {
+      lastTelemetryAt = millis();
+      publishTelemetry();
     }
+  }
 
-
-    StaticJsonDocument<250> doc;
-
-    doc["device"] = DEVICE_ID;
-
-    // --------------------------------------------------------
-    // Replace these with real sensors later.
-    // Currently generating test values.
-    // --------------------------------------------------------
-
-    doc["temperature"] =
-        random(20, 35);
-
-    doc["humidity"] =
-        random(40, 90);
-
-    doc["light"] =
-        random(0, 1023);
-
-
-    doc["firmware"] =
-        FIRMWARE_VERSION;
-
-
-    char buffer[250];
-
-
-    serializeJson(
-        doc,
-        buffer,
-        sizeof(buffer)
-    );
-
-
-    bool result =
-        mqttClient.publish(
-            TOPIC_DATA,
-            buffer,
-            false
-        );
-
-
-    if (result)
-    {
-        Serial.print(
-            "Telemetry: "
-        );
-
-        Serial.println(
-            buffer
-        );
-    }
-    else
-    {
-        Serial.println(
-            "ERROR: Failed to publish telemetry."
-        );
-    }
+  delay(10);
 }

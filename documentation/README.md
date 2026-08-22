@@ -1,15 +1,15 @@
 # Project Report
 
-This directory contains the Persian, implementation-oriented project report. It is not a technology encyclopedia: each chapter records only the decisions, commands, implementation notes, tests, and evidence required to reproduce one project phase.
+This directory contains the Persian practical guide. It documents implemented
+work in full and keeps future work as a short roadmap. A new chapter is added
+only when implementation of that phase begins.
 
 ## Build
 
 Requirements:
 
 - XeLaTeX
-- `latexmk`
-- a Persian font (`Vazirmatn` is preferred; `Noto Naskh Arabic` is the fallback)
-- `DejaVu Sans` and `DejaVu Sans Mono`
+- `Arial` for Persian text and `Consolas` for code on the current machine
 
 From this directory, run:
 
@@ -19,14 +19,17 @@ make
 
 The generated PDF is `main.pdf`, next to `main.tex`. This is also compatible with the normal TeXstudio workflow. Run `make clean` to remove generated files.
 
+The selected fonts are the only machine-specific settings. On Linux or macOS,
+install those fonts or replace the two `set...font` lines in `config.tex` with
+the local font names. No chapter file needs to change.
+
 ## Writing workflow
 
-1. Start the relevant project phase.
-2. Copy only the useful sections from `templates/chapter-template.tex` if a new chapter is needed.
-3. Record the chosen configuration and commands while implementing.
-4. Add the isolated test, expected result, and actual evidence.
-5. Mark completion criteria only after the code and test exist.
-6. Put reusable figures, tables, and citations in the repository-level directories.
+1. Start one small project phase.
+2. Add a chapter only when that phase has real implementation work.
+3. Record exact configuration and commands while implementing.
+4. Add the isolated test, expected result, and observed evidence.
+5. Compile with XeLaTeX and visually inspect the generated PDF.
 
 ## Content rules
 

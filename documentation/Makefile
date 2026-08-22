@@ -1,10 +1,11 @@
-LATEXMK := latexmk
+XELATEX := xelatex
 SOURCE := main.tex
 
 .PHONY: all clean
 
 all:
-	$(LATEXMK) -xelatex -interaction=nonstopmode -halt-on-error $(SOURCE)
+	$(XELATEX) -interaction=nonstopmode -halt-on-error $(SOURCE)
+	$(XELATEX) -interaction=nonstopmode -halt-on-error $(SOURCE)
 
 clean:
-	$(LATEXMK) -C $(SOURCE)
+	$(RM) main.aux main.log main.out main.toc main.pdf

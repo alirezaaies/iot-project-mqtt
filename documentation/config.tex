@@ -1,72 +1,89 @@
-% Packages are loaded before xepersian; xepersian must remain last.
-\usepackage[
-    top=3cm,
-    bottom=3cm,
-    right=3cm,
-    left=3cm
-]{geometry}
-
-\usepackage{graphicx}
-\graphicspath{{../figures/}}
-\usepackage{float}
-\usepackage{booktabs}
-\usepackage{tabularx}
-\usepackage{array}
-\usepackage{amsmath}
-\usepackage{amssymb}
+% Keep xepersian as the last loaded package.
+\usepackage[a4paper,top=25mm,bottom=25mm,right=28mm,left=28mm]{geometry}
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage[most]{tcolorbox}
 \usepackage{enumitem}
-\usepackage{setspace}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
-\usepackage[
-    colorlinks=true,
-    linkcolor=blue,
-    citecolor=blue,
-    urlcolor=blue
-]{hyperref}
+\usepackage{setspace}
+\usepackage[unicode,colorlinks=true,linkcolor=blue!45!black,urlcolor=blue!55!black]{hyperref}
 \usepackage{xepersian}
 
-% Project metadata: update these values as needed.
+% Edit these two values for the final report.
 \newcommand{\ProjectAuthor}{نام تهیه‌کننده}
-\newcommand{\ReportVersion}{نسخه صفر ـ طراحی ساختار}
+\newcommand{\ReportVersion}{نسخهٔ ۰٫۱ - ارتباط برد با کارگزار}
 
-% Portable defaults available in common Linux distributions.
-% Replace Vazirmatn with another installed Persian font if desired.
-\IfFontExistsTF{BLotus}
-  {\settextfont{BLotus}}
-  {\settextfont{BNazanin}}
-%\setlatintextfont{times}
-%\setmonofont{times}
+% These fonts are installed on the current development machine.
+% Change only these two lines when moving the document to a machine that uses
+% different font names.
+\settextfont{Arial}
+\setlatintextfont{Arial}
+\setmonofont{Consolas}
 
-\lstset{
-    basicstyle=\ttfamily\small,
-    breaklines=true,
-    frame=single,
-    columns=fullflexible,
-    keepspaces=true,
-    showstringspaces=false
+\definecolor{Primary}{HTML}{155E75}
+\definecolor{CodeBackground}{HTML}{F4F7F8}
+\definecolor{CodeBorder}{HTML}{CBD5E1}
+\definecolor{CodeComment}{HTML}{4D7C0F}
+\definecolor{CodeString}{HTML}{9F1239}
+
+\lstdefinestyle{projectcode}{
+  basicstyle=\setLTR\ttfamily\small,
+  backgroundcolor=\color{CodeBackground},
+  frame=single,
+  rulecolor=\color{CodeBorder},
+  framerule=0.5pt,
+  xleftmargin=5mm,
+  framexleftmargin=3mm,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  escapeinside={(*@}{@*)},
+  commentstyle=\color{CodeComment},
+  stringstyle=\color{CodeString},
+  keywordstyle=\color{Primary}\bfseries
+}
+\lstset{style=projectcode}
+
+\newtcolorbox{stepbox}[1]{
+  breakable,
+  colback=Primary!4,
+  colframe=Primary!65!black,
+  title={#1},
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=1.5mm
 }
 
-\titleformat{\chapter}{\Huge\bfseries}{\thechapter}{1em}{}
-\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
-\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+\newtcolorbox{notebox}{
+  breakable,
+  colback=yellow!8,
+  colframe=yellow!45!black,
+  title={نکته},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=1.5mm
+}
 
+\titleformat{\chapter}[display]
+  {\bfseries\color{Primary}}
+  {\large فصل \thechapter}
+  {4pt}
+  {\Huge}
+\titleformat{\section}{\Large\bfseries\color{Primary!85!black}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.7em}{}
+
+\setlist{itemsep=3pt,topsep=5pt}
 \onehalfspacing
-\setlength{\headheight}{15pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setlength{\headheight}{18pt}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[R]{گزارش سامانه مانیتورینگ و کنترل
+\fancyhead[R]{راهنمای عملی سامانهٔ
 \lr{IoT}
 }
+\fancyhead[L]{\leftmark}
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\footrulewidth}{0pt}
-
-\newtcolorbox{phasebox}{
-    colback=blue!4,
-    colframe=blue!45!black,
-    title=خلاصه مرحله
-}

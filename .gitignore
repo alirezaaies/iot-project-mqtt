@@ -11,6 +11,7 @@ venv/
 htmlcov/
 build/
 dist/
+/tmp/
 
 # Local configuration and secrets
 .env
